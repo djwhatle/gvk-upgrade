@@ -2,9 +2,11 @@
 - hosts: localhost
   vars:
     migplan_name: "blog-plan"
-    bucket_name: "velero-c12c56cd8af57fc2785ac09af99cc45b"
+    bucket_name: "FILL_IN"
     
     backup_local_dir: "backup_contents"
+    convert_pending_dir: "convert_pending"
+    convert_complete_dir: "convert_complete"
 
   tasks:
 
@@ -51,17 +53,48 @@
 
     - name: Set excluded_resources var
       set_fact:
-        excluded_resources: "{{ result.stdout }}"
+        excluded_resources: "{{ result.stdout.split(' ') }}"
 
   - block:
     - name: Download contents of Velero Backup from Bucket with S3 CLI
       shell: aws s3 cp s3://{{ bucket_name }}/velero/backups/{{ backup_name }} {{ backup_local_dir }} --recursive
       register: result
 
-    - name: Unzip backup .tar.gz resource contents 
+    - name: Unzip backup tar.gz resource contents 
       shell: tar -xf {{ backup_local_dir }}/{{ backup_name }}.tar.gz -C {{ backup_local_dir }}
       register: result
-      warn: False
+
+  - block:
+      - name: Create directories to hold resources that will be converted
+        file:
+          path: "{{ item }}"
+          state: directory
+        with_items:
+        - "{{ convert_pending_dir }}"
+        - "{{ convert_complete_dir }}"
+
+      - name: Best-effort copy all ExcludedResources to "convert_pending" directory
+        shell: cp {{ backup_local_dir }}/resources/{{ item }}/namespaces/*/*.json {{ convert_pending_dir }}
+        with_items: "{{ excluded_resources }}"
+        register: result
+        failed_when: result.rc > 1
+
+      - name: Load files list of files to be converted
+        shell: ls {{ convert_pending_dir }}
+        register: result
+
+      - name: Set files to be converted to ansible list
+        set_fact:
+          files_to_convert: "{{ result.stdout.split(' ') }}"
+
+      - name: Convert resources with oc convert offline
+        shell: oc convert -f {{ convert_pending_dir }}/{{ item }} > {{ convert_complete_dir }}/{{ item }}
+        with_items: "{{ files_to_convert }}"
+        
+
+      
+
+        
 
   
 
