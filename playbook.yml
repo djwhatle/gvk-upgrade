@@ -1,0 +1,73 @@
+---
+- hosts: localhost
+  vars:
+    migplan_name: "blog-plan"
+    bucket_name: ""
+    
+    backup_local_dir: "backup_contents"
+
+  tasks:
+
+  - block:
+    - name: Get MigPlan UID
+      shell: oc get migplan {{ migplan_name }} -o=jsonpath='{.metadata.uid}'
+      register: result
+
+    - name: Set migplan_uid var
+      set_fact:
+        migplan_uid: "{{ result.stdout }}"
+
+  - block:
+    - name: Get MigMigration name corresponding with MigPlan UID
+      shell: oc get migmigration -o json | jq -r '.items[] | select(.metadata.ownerReferences[].uid=="{{ migplan_uid }}") | .metadata.name '
+      register: result
+
+    - name: Set migmigration_name var
+      set_fact:
+        migmigration_name: "{{ result.stdout }}"
+
+  - block:
+    - name: Get MigMigration UID corresponding with MigMigration Name
+      shell: oc get migmigration {{ migmigration_name }} -o jsonpath='{.metadata.uid}'
+      register: result
+
+    - name: Set migmigration_uid var
+      set_fact:
+        migmigration_uid: "{{ result.stdout }}"
+
+  - block:
+    - name: Get Velero Backup Name corresponding with MigMigration
+      shell: oc get backup.velero.io --selector migration-initial-backup={{ migmigration_uid }} -o jsonpath={.items[*].metadata.name}
+      register: result
+
+    - name: Set backup_name var
+      set_fact:
+        backup_name: "{{ result.stdout }}"
+
+  - block:
+    - name: Get ExcludedResources from Velero Restore
+      shell: oc get restore.velero.io  --selector migmigration={{ migmigration_uid }} -o jsonpath='{.items[*].spec.excludedResources[*]}'
+      register: result
+
+    - name: Set excluded_resources var
+      set_fact:
+        excluded_resources: "{{ result.stdout }}"
+
+  - block:
+    - name: Download contents of Velero Backup from Bucket with S3 CLI
+      shell: aws s3 cp s3://{{ bucket_name }}/velero/backups/{{ backup_name }} {{ backup_local_dir }} --recursive
+      register: result
+
+    - name: Unzip backup .tar.gz resource contents 
+      shell: tar -xf {{ backup_local_dir }}/{{ backup_name }}.tar.gz -C {{ backup_local_dir }}
+      register: result
+      warn: False
+
+  
+
+
+
+
+        
+    
+
