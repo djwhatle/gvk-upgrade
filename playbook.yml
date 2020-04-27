@@ -2,7 +2,7 @@
 - hosts: localhost
   vars:
     migplan_name: "blog-plan"
-    bucket_name: ""
+    bucket_name: "velero-c12c56cd8af57fc2785ac09af99cc45b"
     
     backup_local_dir: "backup_contents"
 
@@ -46,7 +46,7 @@
 
   - block:
     - name: Get ExcludedResources from Velero Restore
-      shell: oc get restore.velero.io  --selector migmigration={{ migmigration_uid }} -o jsonpath='{.items[*].spec.excludedResources[*]}'
+      shell: oc get restore.velero.io  --selector migration-final-restore={{ migmigration_uid }} -o jsonpath='{.items[*].spec.excludedResources[*]}'
       register: result
 
     - name: Set excluded_resources var
