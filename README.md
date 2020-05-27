@@ -12,9 +12,8 @@ Sample playbook showing the workflow for performing GVK conversion.
 |3. Ensure you have a new enough `oc` client version to perform the conversion (should match newer cluster involved in migration)|
 |4. Run the playbook|
 
-
-
-
+## Output
+Converted files will be dropped in a new directory `convert_complete`.
 
 ## Limitations
 - This playbook is an illustrative sample, and only works with S3 compatible MigStorage backends
