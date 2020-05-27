@@ -1,6 +1,6 @@
 # gvk-upgrade
 
-Sample playbook showing the workflow for performing GVK conversion.
+Sample playbook showing the workflow for performing GVK conversion to finish a [mig-controller](https://github.com/konveyor/mig-controller) migration when GVK incompatibilities were detected.
 
 ## Usage
 
