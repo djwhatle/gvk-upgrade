@@ -88,7 +88,7 @@
           files_to_convert: "{{ result.stdout.split(' ') }}"
 
       - name: Convert resources with oc convert offline
-        shell: oc convert -f {{ convert_pending_dir }}/{{ item }} > {{ convert_complete_dir }}/{{ item }}
+        shell: oc convert --local=true -f {{ convert_pending_dir }}/{{ item }} > {{ convert_complete_dir }}/{{ item }}
         with_items: "{{ files_to_convert }}"
         
 
